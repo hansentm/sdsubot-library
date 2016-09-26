@@ -6,6 +6,8 @@
  */
 
 #include "Arduino.h"
+#include <avr/io.h>
+#include <avr/interrupt.h>
 
 /*
  * Defines
@@ -42,12 +44,23 @@ class Motion{
 		void leftMotorSpeed(unsigned char speed);
 		void rightMotorSpeed(unsigned char speed);
 		
-	private:
-		unsigned char _Lspeed;
-		unsigned char _Rspeed;
+		//expose to call from ISR
+		void _timerInterrupt();
 		
+	private:
+		void _timerInit();
+		void _timerStop();
+		void _timerRestart();
+	
+		unsigned int _Lcount;
+		unsigned int _Rcount;
+		unsigned int _Lspeed;
+		unsigned int _Rspeed;
+		
+		char _tempSREG; //stores status register during interrupts
 		
 };
 
+extern Motion BotMotion;
 
 #endif

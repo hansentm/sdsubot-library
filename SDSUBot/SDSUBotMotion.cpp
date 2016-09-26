@@ -3,65 +3,192 @@
 
 #include "SDSUBotMotion.h"
 
+Motion BotMotion;
+
 Motion::Motion(){
 	
-	
+	//preinit values
+	this->_Lcount = 0;
+	this->_Lspeed = 0;
+	this->_Rcount = 0;
+	this->_Rspeed = 0;
 	
 }
 
 void Motion::init(){
 	
+	//set the motor controls to outputs
+	pinMode(LEFT_MOTOR_DIRECTION, OUTPUT);  //DirL
+	pinMode(LEFT_MOTOR_STEP, OUTPUT); //StepL
+	pinMode(MOTOR_SLEEP, OUTPUT); //Sleep
+	pinMode(RIGHT_MOTOR_STEP, OUTPUT); //StepR
+	pinMode(RIGHT_MOTOR_DIRECTION, OUTPUT); //DirR
+
+	//set the direction to forward
+	this->leftMotorForward();
+	this->rightMotorForward();
+
+	//initially set driver output to low
+	digitalWrite(LEFT_MOTOR_STEP, LOW);
+	digitalWrite(RIGHT_MOTOR_STEP, LOW);
 	
+	//set up a timer and interrupts
+	this->_timerInit();
+
+	//wake up the motor drivers
+	this->wake();
 	
 }
 
 void Motion::sleep(){
 	
-	
+	//sleep the motor drivers to conserve battery energy
+	digitalWrite(MOTOR_SLEEP, LOW);
+	this->_timerStop();
 	
 }
 
 void Motion::wake(){
 	
-	
+	//wake up the motor drivers
+	digitalWrite(MOTOR_SLEEP, HIGH);
+	this->_timerRestart();
 	
 }
 
 void Motion::rightMotorForward(){
 	
-	
+	digitalWrite(RIGHT_MOTOR_DIRECTION, RIGHT_FORWARD);
 	
 }
 
 void Motion::rightMotorBackward(){
 	
-	
+	digitalWrite(RIGHT_MOTOR_DIRECTION, RIGHT_BACKWARD);
 	
 }
 
 void Motion::leftMotorForward(){
 	
-	
+	digitalWrite(LEFT_MOTOR_DIRECTION, LEFT_FORWARD);
 	
 }
 
 void Motion::leftMotorBackward(){
 	
-	
+	digitalWrite(RIGHT_MOTOR_DIRECTION, LEFT_BACKWARD);
 	
 }
 
 void Motion::leftMotorSpeed(unsigned char speed){
 	
+	this->_Lcount = 0; //reset count
 	
+	//map speed to a 50microsecond count value. 1 = 14.7ms, 255 = 2ms period
+	if(speed == 0){
+		this->_Lspeed = 0;
+	}else{
+		this->_Lspeed = 295 - speed; 
+	}
 	
 }
 
 void Motion::rightMotorSpeed(unsigned char speed){
 	
+	this->_Rcount = 0; //reset count
 	
+	//map speed to a 50microsecond count value. 1 = 14.7ms, 255 = 2ms period
+	if(speed == 0){
+		this->_Rspeed = 0;
+	}else{
+		this->_Rspeed = 295 - speed; 
+	}
 	
 }
 
+/********************************************************************
+* Private Timer Functions
+********************************************************************/
+
+//define speed constants
+#define _TIMER_CYCLES 0x0320 //800 = 50 microseconds per interrupt
+#define _TCCR1B_VAL	0x01
+
+ISR(TIMER1_OVF_vect){
+	BotMotion._timerInterrupt();
+}
+
+//timer1 interrupt service routine
+void Motion::_timerInterrupt(){ 
+	
+	//store status register, turn off interrupts
+	_tempSREG = SREG;
+	cli();
+	
+	//increment and toggle pins
+	if(this->_Lspeed > 0){
+		this->_Lcount++;
+		if(this->_Lcount == this->_Lspeed){
+			this->_Lcount = 0;
+			digitalWrite(LEFT_MOTOR_STEP,!digitalRead(LEFT_MOTOR_STEP));
+		}
+	}
+
+	//increment and toggle pins
+	if(this->_Rspeed > 0){
+		this->_Rcount++;
+		if(this->_Rcount == this->_Rspeed){
+			this->_Rcount = 0;
+			digitalWrite(RIGHT_MOTOR_STEP,!digitalRead(RIGHT_MOTOR_STEP));
+		}
+	}
+	
+	//turn on interrupts, restore status register
+	//sei();
+	SREG = _tempSREG;
+	
+}
+
+void Motion::_timerInit(){
+	
+	//store status register, turn off interrupts
+	_tempSREG = SREG;
+	cli();
+	
+	//set interrupt period to 50 microseconds
+	ICR1 = _TIMER_CYCLES;
+	
+	TCCR1A = 0x00; //do not need any of the compare features
+	TCCR1B = _TCCR1B_VAL; //no clock prescaling (timer1 frequency = 16MHz)
+	
+	//set interrupt on overflow
+	TIMSK1 = 0x01;
+	
+	//turn on interrupts
+	sei();
+	
+}
+
+void Motion::_timerStop(){
+	
+	TCCR1B = 0x00; //turn off clock
+	
+}
+
+void Motion::_timerRestart(){
+	
+	//store status register, turn off interrupts
+	_tempSREG = SREG;
+	cli();
+	
+	TCNT1 = 0; //reset counter
+	this->_Lcount = 0;
+	this->_Rcount = 0;
+	
+	//start clock
+	TCCR1B = _TCCR1B_VAL;
+	
+	SREG = _tempSREG;
+}
 
 #endif

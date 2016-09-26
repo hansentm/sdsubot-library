@@ -33,7 +33,7 @@ class SDSUBot{
 		
 		
 	private:
-		Motion _bot_motion;
+		//Motion _bot_motion;
 };
 
 #endif
