@@ -2,6 +2,12 @@
 #define SDSUBOT_MOTION_H
 
 /*
+ * Includes
+ */
+
+#include "Arduino.h"
+
+/*
  * Defines
  */
  

@@ -1,6 +1,8 @@
 #ifndef SDSUBOT_MOTION_CPP
 #define SDSUBOT_MOTION_CPP
 
+#include "SDSUBotMotion.h"
+
 Motion::Motion(){
 	
 	
