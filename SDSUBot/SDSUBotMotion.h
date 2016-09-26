@@ -1,8 +1,6 @@
 #ifndef SDSUBOT_MOTION_H
 #define SDSUBOT_MOTION_H
 
-#include <Arduino.h>
-
 /*
  * Defines
  */
