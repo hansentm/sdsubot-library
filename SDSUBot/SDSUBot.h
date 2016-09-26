@@ -9,6 +9,12 @@
 #include "SDSUBotMotion.h"
 
 /*
+ * Defines
+ */
+ 
+#define tonePin 6
+
+/*
  * Main SDSUBot class. Will expose all other functionality from subclasses
  */
 
