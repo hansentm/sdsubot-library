@@ -1,0 +1,25 @@
+################################################
+# CLASSES (KEYWORD1)
+################################################
+
+SDSUBot	KEYWORD1
+
+################################################
+# FUNCTIONS (KEYWORD2)
+################################################
+
+initMotion	KEYWORD2
+sleep	KEYWORD2
+wake	KEYWORD2
+rightMotorForward	KEYWORD2
+rightMotorBackward	KEYWORD2
+leftMotorForward	KEYWORD2
+leftMotorBackward	KEYWORD2
+leftMotorSpeed	KEYWORD2
+rightMotorSpeed	KEYWORD2
+
+################################################
+# CONSTANTS (LITERAL1)
+################################################
+
+tonePin	LITERAL1
