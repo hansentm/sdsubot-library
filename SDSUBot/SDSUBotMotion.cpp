@@ -12,6 +12,7 @@ Motion::Motion(){
 	this->_Lspeed = 0;
 	this->_Rcount = 0;
 	this->_Rspeed = 0;
+	this->_sleeping = true;
 	
 }
 
@@ -45,6 +46,7 @@ void Motion::sleep(){
 	//sleep the motor drivers to conserve battery energy
 	digitalWrite(MOTOR_SLEEP, LOW);
 	this->_timerStop();
+	this->_sleeping = true;
 	
 }
 
@@ -53,6 +55,7 @@ void Motion::wake(){
 	//wake up the motor drivers
 	digitalWrite(MOTOR_SLEEP, HIGH);
 	this->_timerRestart();
+	this->_sleeping = false;
 	
 }
 
@@ -88,9 +91,10 @@ void Motion::leftMotorSpeed(unsigned char speed){
 	if(speed == 0){
 		this->_Lspeed = 0;
 	}else{
-		this->_Lspeed = 295 - speed; 
+		this->_Lspeed = MAX_SPEED_CONSTANT - speed; 
 	}
 	
+	this->_stop_start_Check();
 }
 
 void Motion::rightMotorSpeed(unsigned char speed){
@@ -101,18 +105,42 @@ void Motion::rightMotorSpeed(unsigned char speed){
 	if(speed == 0){
 		this->_Rspeed = 0;
 	}else{
-		this->_Rspeed = 295 - speed; 
+		this->_Rspeed = MAX_SPEED_CONSTANT - speed; 
+	}
+	
+	this->_stop_start_Check();
+}
+
+void Motion::_stop_start_Check(){
+	/*
+	* Automatically sleeps the robot drivers if not moving to conserve power
+	*/
+	
+	if(this->_sleeping){
+		
+		if(this->_Lspeed || this->_Rspeed)
+			this->wake();
+		
+	}else{
+		
+		if((this->_Lspeed == 0) && (this->_Rspeed == 0)){
+			delay(50); //delay so the robot can stop and not roll
+			this->sleep();
+		}
+		
 	}
 	
 }
+
 
 /********************************************************************
 * Private Timer Functions
 ********************************************************************/
 
 //define speed constants
-#define _TIMER_CYCLES 0x0320 //800 = 50 microseconds per interrupt
-#define _TCCR1B_VAL	0x01
+#define _TIMER_CYCLES 0x0320 // = 0d800 = 50 microseconds per interrupt
+#define _TCCR1A_VAL 0b00000010 //set WGM11 = 1 (WGM13:10 = 0b1110 -> Fast PWM Mode 14 -> TOP=ICR1, interrupt at TOP))
+#define _TCCR1B_VAL	0b00011001 //clock div by 1 (16MHz); WGM13:12 = 0b11 (Mode 14 with TCCR1A)
 
 ISR(TIMER1_OVF_vect){
 	BotMotion._timerInterrupt();
@@ -120,10 +148,6 @@ ISR(TIMER1_OVF_vect){
 
 //timer1 interrupt service routine
 void Motion::_timerInterrupt(){ 
-	
-	//store status register, turn off interrupts
-	_tempSREG = SREG;
-	cli();
 	
 	//increment and toggle pins
 	if(this->_Lspeed > 0){
@@ -143,10 +167,6 @@ void Motion::_timerInterrupt(){
 		}
 	}
 	
-	//turn on interrupts, restore status register
-	//sei();
-	SREG = _tempSREG;
-	
 }
 
 void Motion::_timerInit(){
@@ -158,14 +178,14 @@ void Motion::_timerInit(){
 	//set interrupt period to 50 microseconds
 	ICR1 = _TIMER_CYCLES;
 	
-	TCCR1A = 0x00; //do not need any of the compare features
+	TCCR1A = _TCCR1A_VAL; //set WGM11 = 1 (WGM13:10 = 0b1110 -> Fast PWM Mode 14 -> TOP=ICR1, interrupt at TOP))
 	TCCR1B = _TCCR1B_VAL; //no clock prescaling (timer1 frequency = 16MHz)
 	
 	//set interrupt on overflow
 	TIMSK1 = 0x01;
 	
-	//turn on interrupts
-	sei();
+	//restore SREG. this will restore interrupts if enabled
+	SREG = _tempSREG;
 	
 }
 
@@ -189,6 +209,7 @@ void Motion::_timerRestart(){
 	TCCR1B = _TCCR1B_VAL;
 	
 	SREG = _tempSREG;
+	
 }
 
 #endif

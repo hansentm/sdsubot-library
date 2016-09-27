@@ -24,6 +24,8 @@
 #define LEFT_BACKWARD         LOW
 #define RIGHT_BACKWARD        HIGH
 
+#define MAX_SPEED_CONSTANT	  285 //max speed. 295 -> 4ms period at 255. 
+
 /*
  *	Motion Class
  */
@@ -51,11 +53,14 @@ class Motion{
 		void _timerInit();
 		void _timerStop();
 		void _timerRestart();
+		void _stop_start_Check();
 	
 		unsigned int _Lcount;
 		unsigned int _Rcount;
 		unsigned int _Lspeed;
 		unsigned int _Rspeed;
+		
+		bool _sleeping;
 		
 		char _tempSREG; //stores status register during interrupts
 		
